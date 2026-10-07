@@ -162,9 +162,8 @@ export const icon = (id) =>
 // PRICE FORMAT
 // =====================================================
 
-export const usd = (n) =>
-    '$' +
-    Number(n || 0).toLocaleString('en-US')
+export const formatPrice = (amount) =>
+    `₹${Number(amount || 0).toLocaleString('en-IN')}`
 
 // =====================================================
 // PRODUCTS

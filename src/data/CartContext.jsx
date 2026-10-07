@@ -198,29 +198,10 @@
 // }
 
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { apiRequest } from './api.js'
-
-const CartContext = createContext(null)
-
-// Get currently logged-in user
-export const getUserId = () => {
-    const savedUser =
-        localStorage.getItem('cyberflixUser') ||
-        sessionStorage.getItem('cyberflixUser')
-
-    if (!savedUser) {
-        return null
-    }
-
-    try {
-        const user = JSON.parse(savedUser)
-        return user?.id || null
-    } catch (error) {
-        console.error('User data error:', error)
-        return null
-    }
-}
+import { CartContext } from './cartContext.js'
+import { getUserId } from './getUserId.js'
 
 export function CartProvider({ children }) {
     const [cart, setCart] = useState([])
@@ -260,7 +241,8 @@ export function CartProvider({ children }) {
 
     // Load cart when app starts
     useEffect(() => {
-        loadCart()
+        const request = window.setTimeout(() => { void loadCart() }, 0)
+        return () => window.clearTimeout(request)
     }, [loadCart])
 
     // =========================
@@ -335,6 +317,8 @@ export function CartProvider({ children }) {
         }
     }
 
+    const reset = () => setCart([])
+
     const clear = async () => {
         try {
             setError('')
@@ -378,6 +362,7 @@ export function CartProvider({ children }) {
         updateQuantity,
         remove,
         clear,
+        reset,
         loadCart
     }
 
@@ -386,14 +371,4 @@ export function CartProvider({ children }) {
             {children}
         </CartContext.Provider>
     )
-}
-
-export function useCart() {
-    const context = useContext(CartContext)
-
-    if (!context) {
-        throw new Error('useCart must be used inside CartProvider')
-    }
-
-    return context
 }

@@ -151,23 +151,13 @@ export default function Register() {
                     </label>
 
                     {error && (
-                        <p
-                            style={{
-                                color: '#d33',
-                                marginTop: '12px'
-                            }}
-                        >
+                        <p className="form-error" role="alert">
                             {error}
                         </p>
                     )}
 
                     {success && (
-                        <p
-                            style={{
-                                color: 'green',
-                                marginTop: '12px'
-                            }}
-                        >
+                        <p className="form-success" role="status">
                             {success}
                         </p>
                     )}

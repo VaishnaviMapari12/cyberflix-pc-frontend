@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import ProductImage from '../components/ProductImage.jsx'
-import { useCart, getUserId } from '../data/CartContext.jsx'
+import { getUserId } from '../data/getUserId.js'
+import { useCart } from '../data/useCart.js'
 import { apiRequest, normalizeProduct } from '../data/api.js'
-import { usd } from '../data/products.js'
+import { formatPrice } from '../data/products.js'
 
 const slots = [
     ['cpu', 'Processor', 'cpu'],
@@ -171,7 +172,7 @@ export default function PCBuilder() {
                                     </div>
                                     <select value={selected[key] || ''} onChange={(event) => handleChange(key, event.target.value)}>
                                         <option value="">Select {label}</option>
-                                        {available.map((item) => <option key={item.id} value={item.id}>{item.name} — {usd(item.price)}</option>)}
+                                        {available.map((item) => <option key={item.id} value={item.id}>{item.name} — {formatPrice(item.price)}</option>)}
                                     </select>
                                 </div>
                             </label>
@@ -189,7 +190,7 @@ export default function PCBuilder() {
                         {selectedProducts.map(({ key, label, product }) => (
                             <div className="summary-row" key={key}>
                                 <span>{label}: {product.name}</span>
-                                <strong>{usd(product.price)}</strong>
+                                <strong>{formatPrice(product.price)}</strong>
                             </div>
                         ))}
                         {!selectedProducts.length && <p className="mute">Choose components to see the build summary.</p>}
@@ -203,7 +204,7 @@ export default function PCBuilder() {
 
                     {message && <p className="builder-message" role="status">{message}</p>}
                     <label className="build-name-field">Build name<input value={buildName} maxLength={255} onChange={(event) => setBuildName(event.target.value)} /></label>
-                    <div className="total"><span>Estimated total</span><b>{usd(total)}</b></div>
+                    <div className="total"><span>Estimated total</span><b>{formatPrice(total)}</b></div>
                     <button className="btn" onClick={checkCompatibility} disabled={checking || !selectedProducts.length}>{checking ? 'Checking...' : 'Check Compatibility'}</button>
                     <button className="btn" onClick={addBuildToBag} disabled={adding || !selectedProducts.length}>{adding ? 'Adding...' : 'Add build to bag'}</button>
                     <button className="btn ghost" onClick={saveBuild} disabled={saving || !selectedProducts.length}>{saving ? 'Saving...' : 'Save PC Build'}</button>

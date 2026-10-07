@@ -28,7 +28,7 @@ const getLoggedInUser = () => {
 export default function Profile() {
     const navigate = useNavigate()
 
-    const [user, setUser] = useState(null)
+    const [user] = useState(getLoggedInUser)
     const [orders, setOrders] = useState([])
     const [ordersLoading, setOrdersLoading] = useState(false)
     const [ordersError, setOrdersError] = useState('')
@@ -37,15 +37,10 @@ export default function Profile() {
     // LOAD USER
     // =========================
     useEffect(() => {
-        const savedUser = getLoggedInUser()
-
-        if (!savedUser) {
+        if (!user) {
             navigate('/login')
-            return
         }
-
-        setUser(savedUser)
-    }, [navigate])
+    }, [navigate, user])
 
     // =========================
     // LOAD ORDERS

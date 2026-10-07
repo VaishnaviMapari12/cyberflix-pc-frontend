@@ -184,7 +184,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { API_BASE } from './api.js'
-import { categories as staticCategories } from './products.js'
+import { categories as staticCategories, products as staticProducts } from './products.js'
 
 const API_URL = API_BASE
 
@@ -404,6 +404,8 @@ export function useCatalog() {
                 ])
 
             } catch (err) {
+                setProducts(staticProducts)
+                setCategories(staticCategories)
                 setError(
                     err.message ||
                     'Unable to connect to backend.'
@@ -424,7 +426,8 @@ export function useCatalog() {
     // ==============================
 
     useEffect(() => {
-        loadCatalog()
+        const request = window.setTimeout(() => { void loadCatalog() }, 0)
+        return () => window.clearTimeout(request)
     }, [loadCatalog])
 
     return {
@@ -435,4 +438,3 @@ export function useCatalog() {
         retry: loadCatalog
     }
 }
-

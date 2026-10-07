@@ -153,23 +153,13 @@ export default function Login() {
                     </div>
 
                     {error && (
-                        <p
-                            style={{
-                                color: '#d33',
-                                marginTop: '12px'
-                            }}
-                        >
+                        <p className="form-error" role="alert">
                             {error}
                         </p>
                     )}
 
                     {success && (
-                        <p
-                            style={{
-                                color: 'green',
-                                marginTop: '12px'
-                            }}
-                        >
+                        <p className="form-success" role="status">
                             {success}
                         </p>
                     )}
@@ -188,7 +178,7 @@ export default function Login() {
 
                 <p className="auth-switch">
                     New to Cyberflix?{' '}
-                    <Link to="/profile">
+                    <Link to="/register">
                         Create your profile
                     </Link>
                 </p>

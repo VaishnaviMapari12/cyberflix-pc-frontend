@@ -137,11 +137,6 @@ export default function Home() {
             ? catalogCategories
             : staticCategories
 
-    // Find product safely
-    const get = (id) => {
-        return products.find((p) => p.id === id) || products[0]
-    }
-
     // Backend product IDs are numeric, so use available products safely
     const cpuProduct = products.find(
         (p) => p.category_id === 1 || p.category === 'CPU'

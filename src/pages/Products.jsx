@@ -1,63 +1,154 @@
-import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import ProductCard from '../components/Productcard.jsx'
 import ProductImage from '../components/ProductImage.jsx'
-import { categories, products } from '../data/products.js'
+import { categories, products as staticProducts } from '../data/products.js'
 import { useCatalog } from '../data/useCatalog.js'
 
 export default function Products() {
     const { products: catalogProducts, loading, error } = useCatalog()
-    const [sp, setSp] = useSearchParams()
-    const cat = sp.get('cat') || 'all'
-    const [q, setQ] = useState('')
+    const [searchParams, setSearchParams] = useSearchParams()
+    const [query, setQuery] = useState('')
     const [sort, setSort] = useState('')
-    const cur = categories.find((c) => c.id === cat)
+    const categoryId = searchParams.get('cat') || 'all'
+    const selectedCategory = categories.find((category) => category.id === categoryId)
+    const allProducts = catalogProducts.length ? catalogProducts : staticProducts
 
-    let list = catalogProducts.filter(
-        (p) => (cat === 'all' || p.cat === cat) && p.name.toLowerCase().includes(q.toLowerCase())
-    )
-    if (sort === 'lo') list = [...list].sort((a, b) => a.price - b.price)
-    if (sort === 'hi') list = [...list].sort((a, b) => b.price - a.price)
-    if (sort === 'rt') list = [...list].sort((a, b) => b.rating - a.rating)
+    const visibleProducts = useMemo(() => {
+        const normalizedQuery = query.trim().toLowerCase()
+        const filtered = allProducts.filter((product) => {
+            const matchesCategory = categoryId === 'all' || product.cat === categoryId
+            const matchesQuery = `${product.name} ${product.brand || ''} ${product.spec || ''}`
+                .toLowerCase()
+                .includes(normalizedQuery)
+            return matchesCategory && matchesQuery
+        })
 
-    if (loading) {
-        return <section className="sec"><p className="mute">Loading components...</p></section>
+        if (sort === 'lo') return filtered.sort((a, b) => a.price - b.price)
+        if (sort === 'hi') return filtered.sort((a, b) => b.price - a.price)
+        if (sort === 'rt') return filtered.sort((a, b) => b.rating - a.rating)
+        return filtered
+    }, [allProducts, categoryId, query, sort])
+
+    const selectCategory = (id) => {
+        setSearchParams(id === 'all' ? {} : { cat: id })
     }
 
     return (
-        <section className="sec">
-            {cur ? (
-                <div className="cbanner">
-                    <ProductImage cat={cur.id} />
-                    <div>
-                        <p className="kicker">{cur.label}</p>
-                        <h2>{cur.name}</h2>
-                        <p className="mute">{list.length} products</p>
-                    </div>
+        <section className="sec components-page">
+            <header className="components-heading">
+                <div>
+                    <p className="kicker">CYBERFLIX / COMPONENTS</p>
+                    <h1>{selectedCategory ? selectedCategory.name : 'Find your next upgrade.'}</h1>
+                    <p className="components-intro">
+                        Explore thoughtfully selected PC hardware, compare the details, and find the right fit for your build.
+                    </p>
                 </div>
-            ) : (
-                <h2>Components</h2>
+                <Link className="btn components-builder-link" to="/builder">
+                    Build a PC <span aria-hidden="true">↗</span>
+                </Link>
+            </header>
+
+            <div className="components-overview" aria-live="polite">
+                <div>
+                    <span className="components-overview__label">The component collection</span>
+                    <strong>{loading ? '…' : visibleProducts.length}</strong>
+                    <span className="mute">{visibleProducts.length === 1 ? 'matching component' : 'matching components'}</span>
+                </div>
+                <ProductImage cat={selectedCategory?.id || 'gpu'} className="components-overview__image" />
+                <span className="components-overview__note">Built for performance. Chosen for compatibility.</span>
+            </div>
+
+            {error && (
+                <div className="catalog-error components-error" role="status">
+                    <p>{error} Showing our curated catalog instead.</p>
+                </div>
             )}
-            <div className="chips">
-                <button className={cat === 'all' ? 'on' : ''} onClick={() => setSp({})}>All</button>
-                {categories.map((c) => (
-                    <button key={c.id} className={cat === c.id ? 'on' : ''} onClick={() => setSp({ cat: c.id })}>
-                        {c.icon} {c.name}
-                    </button>
-                ))}
+
+            <div className="components-layout">
+                <aside className="components-sidebar" aria-label="Filter components by category">
+                    <div className="components-sidebar__heading">
+                        <h2>Categories</h2>
+                        <span>{categories.length}</span>
+                    </div>
+                    <nav className="component-categories">
+                        <button
+                            className={categoryId === 'all' ? 'component-category is-active' : 'component-category'}
+                            onClick={() => selectCategory('all')}
+                            aria-pressed={categoryId === 'all'}
+                        >
+                            <span><span className="component-category__icon">✦</span> All components</span>
+                            <span className="component-category__count">{allProducts.length}</span>
+                        </button>
+                        {categories.map((category) => {
+                            const count = allProducts.filter((product) => product.cat === category.id).length
+                            const active = categoryId === category.id
+                            return (
+                                <button
+                                    key={category.id}
+                                    className={active ? 'component-category is-active' : 'component-category'}
+                                    onClick={() => selectCategory(category.id)}
+                                    aria-pressed={active}
+                                >
+                                    <span>
+                                        <span className="component-category__icon" aria-hidden="true">{category.icon}</span>
+                                        {category.name}
+                                    </span>
+                                    <span className="component-category__count">{count}</span>
+                                </button>
+                            )
+                        })}
+                    </nav>
+                </aside>
+
+                <div className="components-results">
+                    <div className="components-toolbar">
+                        <label className="components-search">
+                            <span className="components-search__icon" aria-hidden="true">⌕</span>
+                            <span className="sr-only">Search components</span>
+                            <input
+                                type="search"
+                                placeholder="Search by name, brand, or spec"
+                                value={query}
+                                onChange={(event) => setQuery(event.target.value)}
+                            />
+                        </label>
+                        <label className="components-sort">
+                            <span>Sort by</span>
+                            <select value={sort} onChange={(event) => setSort(event.target.value)}>
+                                <option value="">Featured</option>
+                                <option value="rt">Top rated</option>
+                                <option value="lo">Price: low to high</option>
+                                <option value="hi">Price: high to low</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    {loading ? (
+                        <div className="components-loading" role="status">Loading components…</div>
+                    ) : visibleProducts.length ? (
+                        <div className="grid components-grid">
+                            {visibleProducts.map((product) => <ProductCard key={product.id} p={product} />)}
+                        </div>
+                    ) : (
+                        <div className="components-empty">
+                            <span aria-hidden="true">⌕</span>
+                            <h2>No components found</h2>
+                            <p className="mute">Try a different search or clear your filters to see the full collection.</p>
+                            <button
+                                className="btn ghost"
+                                onClick={() => {
+                                    setQuery('')
+                                    setSort('')
+                                    selectCategory('all')
+                                }}
+                            >
+                                Clear filters
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
-            <div className="row">
-                <input placeholder="Search components" value={q} onChange={(e) => setQ(e.target.value)} />
-                <select value={sort} onChange={(e) => setSort(e.target.value)}>
-                    <option value="">Sort: Featured</option>
-                    <option value="rt">Top rated</option>
-                    <option value="lo">Price: low to high</option>
-                    <option value="hi">Price: high to low</option>
-                </select>
-            </div>
-            {error && <p role="alert" className="mute">{error}</p>}
-            <div className="grid">{list.map((p) => <ProductCard key={p.id} p={p} />)}</div>
-            {!list.length && <p className="mute">No components match. Try another category or search.</p>}
         </section>
     )
 }

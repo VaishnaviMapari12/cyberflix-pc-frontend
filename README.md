@@ -21,7 +21,7 @@ The web app runs at `http://localhost:5173` and proxies `/api` and `/uploads` re
 
 ## Backend database
 
-Create `backend/.env` with the connection details for a MySQL database containing the `categories`, `products`, `cart`, `orders`, `pc_builds`, and `pc_build_components` tables:
+Create `backend/.env` with the connection details for your MySQL database. The backend reads these values directly; use real credentials for your local or hosted database and do not commit this file:
 
 ```env
 PORT=5000
@@ -30,6 +30,12 @@ DB_USER=your_mysql_user
 DB_PASSWORD=your_mysql_password
 DB_NAME=cyberflix
 DB_PORT=3306
+```
+
+Before starting a deployment with the updated checkout, add the order delivery columns:
+
+```sh
+npm --prefix backend run migrate:delivery
 ```
 
 Add categories and products to the database for the catalog to display. The API health check is available at `http://localhost:5000/`.

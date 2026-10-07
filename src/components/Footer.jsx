@@ -8,7 +8,10 @@ export default function Footer() {
         <footer>
             <div className="fgrid">
                 <div>
-                    <Link className="logo" to="/">✦ CYBERFLIX</Link>
+                    <Link className="logo" to="/">
+                        <img src="/favicon.svg" alt="" />
+                        <span>CYBERFLIX</span>
+                    </Link>
                     <p className="mute">Performance hardware, thoughtfully assembled.</p>
                     <p className="mute">Cyberflix Systems LLP<br />Support: 1800-CYBERFLIX</p>
                 </div>

@@ -226,7 +226,8 @@
 
 
 import { Link, useNavigate } from 'react-router-dom'
-import { getUserId, useCart } from '../data/CartContext.jsx'
+import { getUserId } from '../data/getUserId.js'
+import { useCart } from '../data/useCart.js'
 import { useEffect, useState } from 'react'
 import { apiRequest, normalizeProduct } from '../data/api.js'
 import ProductImage from '../components/ProductImage.jsx'
@@ -246,7 +247,8 @@ export default function Cart() {
         loadCart,
         updateQuantity,
         remove,
-        clear
+        clear,
+        reset
     } = useCart()
 
     const [placingOrder, setPlacingOrder] =
@@ -254,6 +256,14 @@ export default function Cart() {
 
     const [orderError, setOrderError] =
         useState('')
+    const [delivery, setDelivery] = useState({
+        name: '',
+        phone: '',
+        address: '',
+        city: '',
+        region: '',
+        postalCode: '',
+    })
 
     useEffect(() => {
         loadCart()
@@ -263,7 +273,8 @@ export default function Cart() {
     // PLACE ORDER
     // ======================================
 
-    const placeOrder = async () => {
+    const placeOrder = async (event) => {
+        event.preventDefault()
         if (cart.length === 0) {
             return
         }
@@ -274,11 +285,11 @@ export default function Cart() {
 
             const result = await apiRequest('/orders/create', {
                 method: 'POST',
-                body: JSON.stringify({ userId: getUserId() })
+                body: JSON.stringify({ userId: getUserId(), delivery })
             })
 
-            await clear()
-            navigate(`/orders/${result.orderId}`)
+            reset()
+            navigate(`/orders/${result.orderId || result.data?.orderId}`)
 
         } catch (err) {
             console.error(
@@ -345,13 +356,13 @@ export default function Cart() {
             {/* ================= ERRORS ================= */}
 
             {error && (
-                <p style={{ color: '#d33' }}>
+                <p className="form-error" role="alert">
                     {error}
                 </p>
             )}
 
             {orderError && (
-                <p style={{ color: '#d33' }}>
+                <p className="form-error" role="alert">
                     {orderError}
                 </p>
             )}
@@ -498,16 +509,47 @@ export default function Cart() {
 
                     {/* ================= SUMMARY ================= */}
 
-                    <aside className="panel cart-summary">
+                    <form className="panel cart-summary checkout-form" onSubmit={placeOrder}>
 
                         <p className="kicker">
-                            ORDER SUMMARY
+                            SECURE CHECKOUT
                         </p>
 
-                        <h2>
-                            Summary
-                        </h2>
+                        <h2>Delivery details</h2>
+                        <label>
+                            Full name
+                            <input required autoComplete="name" maxLength={120} value={delivery.name}
+                                onChange={(event) => setDelivery({ ...delivery, name: event.target.value })} />
+                        </label>
+                        <label>
+                            Phone number
+                            <input required type="tel" autoComplete="tel" maxLength={40} value={delivery.phone}
+                                onChange={(event) => setDelivery({ ...delivery, phone: event.target.value })} />
+                        </label>
+                        <label>
+                            Street address
+                            <textarea required autoComplete="street-address" maxLength={500} rows={2} value={delivery.address}
+                                onChange={(event) => setDelivery({ ...delivery, address: event.target.value })} />
+                        </label>
+                        <div className="checkout-location">
+                            <label>
+                                City
+                                <input required autoComplete="address-level2" maxLength={120} value={delivery.city}
+                                    onChange={(event) => setDelivery({ ...delivery, city: event.target.value })} />
+                            </label>
+                            <label>
+                                State / region
+                                <input required autoComplete="address-level1" maxLength={120} value={delivery.region}
+                                    onChange={(event) => setDelivery({ ...delivery, region: event.target.value })} />
+                            </label>
+                        </div>
+                        <label>
+                            Postal code
+                            <input required autoComplete="postal-code" maxLength={24} value={delivery.postalCode}
+                                onChange={(event) => setDelivery({ ...delivery, postalCode: event.target.value })} />
+                        </label>
 
+                        <h2 className="checkout-summary-title">Order summary</h2>
                         <div className="summary-row">
 
                             <span>
@@ -565,11 +607,7 @@ export default function Cart() {
 
                         <button
                             className="btn"
-                            style={{
-                                width: '100%',
-                                marginTop: '20px'
-                            }}
-                            onClick={placeOrder}
+                            type="submit"
                             disabled={placingOrder}
                         >
                             {placingOrder
@@ -577,7 +615,7 @@ export default function Cart() {
                                 : 'Place Order ↗'}
                         </button>
 
-                    </aside>
+                    </form>
 
                 </div>
 
@@ -586,4 +624,3 @@ export default function Cart() {
         </section>
     )
 }
-

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ProductImage from '../components/ProductImage.jsx'
 import { apiRequest, normalizeProduct } from '../data/api.js'
-import { getUserId } from '../data/CartContext.jsx'
+import { getUserId } from '../data/getUserId.js'
 
 const formatPrice = (amount) => `₹${Number(amount || 0).toLocaleString('en-IN')}`
 
@@ -68,7 +68,7 @@ export default function OrderDetails() {
 
             <div className="order-details-layout">
                 <div className="order-detail-items">
-                    {order.items.map((item) => {
+                    {(order.items || []).map((item) => {
                         const product = normalizeProduct({
                             id: item.product_id || item.id,
                             name: item.product_name,
@@ -91,22 +91,41 @@ export default function OrderDetails() {
                             </article>
                         )
                     })}
-                    {order.items.length === 0 && <p className="mute">No item details are available for this order.</p>}
+                    {(!order.items || order.items.length === 0) && <p className="mute">No item details are available for this order.</p>}
                 </div>
 
-                <aside className="panel order-total-panel">
-                    <p className="kicker">ORDER SUMMARY</p>
-                    <h2>Order total</h2>
-                    <div className="summary-row">
-                        <span>Products</span>
-                        <span>{order.items.reduce((count, item) => count + Number(item.quantity), 0)}</span>
-                    </div>
-                    <div className="summary-row total">
-                        <strong>Total</strong>
-                        <strong>{formatPrice(order.total_amount)}</strong>
-                    </div>
-                    <Link className="btn ghost" to="/profile">Order history</Link>
-                </aside>
+                <div className="order-details-asides">
+                    <aside className="panel delivery-panel">
+                        <p className="kicker">DELIVERING TO</p>
+                        {order.delivery_name ? (
+                            <>
+                                <h2>{order.delivery_name}</h2>
+                                <p>{order.delivery_address}</p>
+                                <p>{[order.delivery_city, order.delivery_region, order.delivery_postal_code].filter(Boolean).join(', ')}</p>
+                                <p className="mute">{order.delivery_phone}</p>
+                            </>
+                        ) : (
+                            <p className="mute">Delivery details were not recorded for this order.</p>
+                        )}
+                    </aside>
+                    <aside className="panel order-total-panel">
+                        <p className="kicker">ORDER SUMMARY</p>
+                        <h2>Order total</h2>
+                        <div className="summary-row">
+                            <span>Products</span>
+                            <span>{(order.items || []).reduce((count, item) => count + Number(item.quantity), 0)}</span>
+                        </div>
+                        <div className="summary-row">
+                            <span>Delivery</span>
+                            <span>Free</span>
+                        </div>
+                        <div className="summary-row total">
+                            <strong>Total</strong>
+                            <strong>{formatPrice(order.total_amount)}</strong>
+                        </div>
+                        <Link className="btn ghost" to="/profile">Order history</Link>
+                    </aside>
+                </div>
             </div>
         </section>
     )
