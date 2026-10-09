@@ -1,4 +1,7 @@
-const API_BASE = (import.meta.env.VITE_API_URL || '/api').replace(/\/+$/, '')
+const DEFAULT_API_BASE = import.meta.env.PROD
+    ? 'https://cyberflix-pc-2.onrender.com/api'
+    : '/api'
+const API_BASE = (import.meta.env.VITE_API_URL || DEFAULT_API_BASE).replace(/\/+$/, '')
 
 export async function apiRequest(path, options = {}) {
     let response
