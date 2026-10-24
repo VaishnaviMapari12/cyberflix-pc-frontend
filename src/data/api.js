@@ -123,7 +123,7 @@
 
 
 
-const DEFAULT_API_BASE = 'https://cyberflix-pc-2.onrender.com/api';
+const DEFAULT_API_BASE = 'https://cyberflix-pc-3.onrender.com/api';
 
 const API_BASE = (
     import.meta.env.DEV
