@@ -29,6 +29,30 @@ const journalEntries = [
     },
 ]
 
+const infoContent = {
+    'about-us': {
+        intro: 'Cyberflix Systems LLP helps PC enthusiasts explore components and plan custom builds.',
+        sections: [
+            ['A considered component range', 'Browse processors, graphics cards, memory, storage, cooling, cases, displays, and accessories in one place.'],
+            ['Build with clarity', 'Use the PC Builder to assemble a parts list and request a compatibility check against the store catalog.'],
+        ],
+    },
+    'shipping-returns': {
+        intro: 'Delivery options and return eligibility can vary by product and destination.',
+        sections: [
+            ['Before placing an order', 'Review the product and delivery details shown at checkout. If you need clarification about an item or destination, contact support before ordering.'],
+            ['Need help with an order?', 'Contact the Cyberflix support team with your order number so they can confirm the applicable delivery or return information.'],
+        ],
+    },
+    warranty: {
+        intro: 'Warranty coverage can differ by component and manufacturer.',
+        sections: [
+            ['Check product coverage', 'Review the warranty information supplied with the product and its manufacturer documentation for the applicable terms and duration.'],
+            ['Support with a warranty query', 'Contact Cyberflix support with your order details and component information for assistance with the next steps.'],
+        ],
+    },
+}
+
 function Journal() {
     return (
         <section className="sec journal-page">
@@ -100,11 +124,31 @@ export default function Info() {
         return <Journal />
     }
 
+    const content = infoContent[slug]
+
     return (
-        <section className="sec">
-            <h1>{title}</h1>
-            <p className="lead">This page is ready for your content. Add the Cyberflix Systems LLP details for it here.</p>
-            <Link className="btn" to="/">Back to home</Link>
+        <section className="sec info-page">
+            <header className="journal-intro">
+                <p className="kicker">CYBERFLIX / INFORMATION</p>
+                <h1>{title}</h1>
+                <p className="lead">{content.intro}</p>
+            </header>
+            <div className="info-sections">
+                {content.sections.map(([heading, body]) => (
+                    <article className="journal-card" key={heading}>
+                        <h2>{heading}</h2>
+                        <p>{body}</p>
+                    </article>
+                ))}
+            </div>
+            <div className="info-footer panel">
+                <div>
+                    <p className="kicker">QUESTIONS?</p>
+                    <h2>Talk to our support team.</h2>
+                    <p className="mute">Get help with components, orders, and build planning.</p>
+                </div>
+                <Link className="btn" to="/contact">Contact support</Link>
+            </div>
         </section>
     )
 }

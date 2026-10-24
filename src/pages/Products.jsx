@@ -2,17 +2,17 @@ import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import ProductCard from '../components/Productcard.jsx'
 import ProductImage from '../components/ProductImage.jsx'
-import { categories, products as staticProducts } from '../data/products.js'
+import { categories } from '../data/products.js'
 import { useCatalog } from '../data/useCatalog.js'
 
 export default function Products() {
-    const { products: catalogProducts, loading, error } = useCatalog()
+    const { products: catalogProducts, loading, error, retry } = useCatalog()
     const [searchParams, setSearchParams] = useSearchParams()
     const [query, setQuery] = useState('')
     const [sort, setSort] = useState('')
     const categoryId = searchParams.get('cat') || 'all'
     const selectedCategory = categories.find((category) => category.id === categoryId)
-    const allProducts = catalogProducts.length ? catalogProducts : staticProducts
+    const allProducts = catalogProducts
 
     const visibleProducts = useMemo(() => {
         const normalizedQuery = query.trim().toLowerCase()
@@ -61,7 +61,11 @@ export default function Products() {
 
             {error && (
                 <div className="catalog-error components-error" role="status">
-                    <p>{error} Showing our curated catalog instead.</p>
+                    <div>
+                        <strong>Live catalog unavailable</strong>
+                        <p>Products and current stock could not be loaded. Reconnect to the store service to browse live inventory.</p>
+                    </div>
+                    <button className="btn ghost sm" type="button" onClick={retry}>Retry connection</button>
                 </div>
             )}
 

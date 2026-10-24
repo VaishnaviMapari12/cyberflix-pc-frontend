@@ -54,7 +54,9 @@ export default function Register() {
 
             if (!response.ok || !result.success) {
                 throw new Error(
-                    result.message || 'Registration failed'
+                    response.status >= 500
+                        ? 'Account service is temporarily unavailable. Please try again later.'
+                        : result.message || 'Registration failed'
                 )
             }
 
@@ -66,10 +68,9 @@ export default function Register() {
 
         } catch (err) {
             console.error('Register Error:', err)
-            setError(
-                err.message ||
-                'Unable to create account'
-            )
+            setError(err instanceof TypeError
+                ? 'Cannot reach the account service. Please try again later.'
+                : err.message || 'Unable to create account')
         } finally {
             setLoading(false)
         }

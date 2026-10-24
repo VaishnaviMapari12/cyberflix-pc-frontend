@@ -1,11 +1,19 @@
 import { useState } from 'react'
 
 export default function Contact() {
-    const [sent, setSent] = useState(false)
+    const [emailDraft, setEmailDraft] = useState('')
 
     const submit = (event) => {
         event.preventDefault()
-        setSent(true)
+        const form = new FormData(event.currentTarget)
+        const subject = `Cyberflix support: ${form.get('topic')}`
+        const body = [
+            `Name: ${form.get('name')}`,
+            `Email: ${form.get('email')}`,
+            '',
+            String(form.get('message') || ''),
+        ].join('\n')
+        setEmailDraft(`mailto:support@cyberflix.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`)
     }
 
     return (
@@ -38,8 +46,14 @@ export default function Contact() {
                         </select>
                     </label>
                     <label>Message<textarea required name="message" rows="6" placeholder="Tell us what you are building..."></textarea></label>
-                    {sent && <p className="ok form-success">Thanks. Your message is ready for the Cyberflix support team.</p>}
-                    <button className="btn" type="submit">Send message ↗</button>
+                    {emailDraft ? (
+                        <div>
+                            <p className="form-success" role="status">Your message is ready. Open your email app to send it to our support team.</p>
+                            <a className="btn" href={emailDraft}>Open email draft ↗</a>
+                        </div>
+                    ) : (
+                        <button className="btn" type="submit">Prepare email draft ↗</button>
+                    )}
                 </form>
             </div>
         </section>

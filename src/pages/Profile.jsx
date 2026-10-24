@@ -94,6 +94,7 @@ export default function Profile() {
     const logout = () => {
         localStorage.removeItem('cyberflixUser')
         sessionStorage.removeItem('cyberflixUser')
+        window.dispatchEvent(new Event('cyberflix:auth-changed'))
 
         navigate('/login')
     }
@@ -191,12 +192,9 @@ export default function Profile() {
                         Cyberflix Customer
                     </p>
 
-                    <button
-                        className="btn ghost sm"
-                        type="button"
-                    >
-                        Edit profile
-                    </button>
+                    <p className="mute">
+                        Need to update your account details? <Link className="link" to="/contact">Contact support</Link>.
+                    </p>
 
                 </section>
 
@@ -226,11 +224,7 @@ export default function Profile() {
                                 Unable to load orders.
                             </h2>
 
-                            <p
-                                style={{
-                                    color: '#d33'
-                                }}
-                            >
+                            <p className="form-error" role="alert">
                                 {ordersError}
                             </p>
                         </div>

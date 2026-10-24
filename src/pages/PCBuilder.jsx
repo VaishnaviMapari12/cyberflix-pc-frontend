@@ -22,6 +22,7 @@ export default function PCBuilder() {
     const [apiProducts, setApiProducts] = useState([])
     const [loading, setLoading] = useState(true)
     const [apiError, setApiError] = useState('')
+    const [reloadKey, setReloadKey] = useState(0)
     const [selected, setSelected] = useState({})
     const [warnings, setWarnings] = useState([])
     const [suggestions, setSuggestions] = useState([])
@@ -37,6 +38,7 @@ export default function PCBuilder() {
             .then((result) => {
                 if (!active) return
                 const products = (result.data || []).map(normalizeProduct)
+                setApiError('')
                 setApiProducts(products)
                 setSelected(Object.fromEntries(slots.map(([key, , cat]) => [
                     key,
@@ -44,13 +46,16 @@ export default function PCBuilder() {
                 ])))
             })
             .catch((error) => {
-                if (active) setApiError(error.message || 'Unable to connect to backend.')
+                if (!active) return
+                setApiError(error.message || 'Live component inventory is unavailable.')
+                setApiProducts([])
+                setSelected({})
             })
             .finally(() => {
                 if (active) setLoading(false)
             })
         return () => { active = false }
-    }, [])
+    }, [reloadKey])
 
     const chosen = useMemo(() => slots.map(([key, label, cat]) => ({
         key,
@@ -92,6 +97,10 @@ export default function PCBuilder() {
 
     const addBuildToBag = async () => {
         if (!selectedProducts.length) return setMessage('Select at least one component first.')
+        if (!getUserId()) {
+            setMessage('Please log in to add products to your cart')
+            return
+        }
         setAdding(true)
         setMessage('')
         try {
@@ -110,14 +119,18 @@ export default function PCBuilder() {
             setMessage('Please log in before saving a build.')
             return
         }
+        if (!buildName.trim()) {
+            setMessage('Enter a name for this build before saving.')
+            return
+        }
         setSaving(true)
         setMessage('')
         try {
             const result = await apiRequest('/builder/save', {
                 method: 'POST',
-                body: JSON.stringify({ userId, buildName, componentIds }),
+                body: JSON.stringify({ userId, buildName: buildName.trim(), componentIds }),
             })
-            setMessage(`Build saved. Build ID: ${result.data.buildId}`)
+            setMessage(`Build saved. Build ID: ${result.data?.buildId}`)
         } catch (error) {
             setWarnings(error.warnings || [])
             setSuggestions(error.suggestions || [])
@@ -135,14 +148,6 @@ export default function PCBuilder() {
         )
     }
 
-    if (apiError && !apiProducts.length) {
-        return (
-            <section className="sec builder-page">
-                <div className="panel"><p className="kicker">API ERROR</p><h2>Backend connection failed</h2><p role="alert">{apiError}</p><button className="btn" onClick={() => window.location.reload()}>Retry</button></div>
-            </section>
-        )
-    }
-
     return (
         <section className="sec builder-page">
             <div className="sh">
@@ -154,28 +159,54 @@ export default function PCBuilder() {
                 <Link className="btn ghost" to="/products">Browse components</Link>
             </div>
 
-            <div className="builder-api-status">
-                <span>● Backend Connected</span>
-                <span>{apiProducts.length} products loaded</span>
+            <div className={`builder-api-status${apiError ? ' is-preview' : ''}`} role={apiError ? 'status' : undefined}>
+                <span>{apiError ? 'Preview mode · live inventory unavailable' : '● Live inventory connected'}</span>
+                <span>{apiProducts.length} {apiError ? 'live components available' : 'products loaded'}</span>
             </div>
+            {apiError && (
+                <div className="builder-preview-note" role="status">
+                    <span>Component selection, compatibility checks, saving, and cart actions are paused until live inventory is available.</span>
+                    <button className="btn ghost sm" type="button" onClick={() => {
+                        setLoading(true)
+                        setReloadKey((key) => key + 1)
+                    }}>Retry connection</button>
+                </div>
+            )}
 
             <div className="builder-layout">
                 <div className="builder-slots">
-                    {chosen.map(({ key, label, category, product }) => {
+                    {chosen.map(({ key, label, category, product }, index) => {
                         const available = apiProducts.filter((item) => item.cat === category && Number(item.stock) > 0)
+                        const emptyState = apiError
+                            ? 'Inventory unavailable'
+                            : `No in-stock ${label.toLowerCase()}`
                         return (
-                            <label className="slot" key={key}>
-                                <span>{label}</span>
+                            <div className="slot" key={key}>
+                                <div className="slot-heading">
+                                    <span className="slot-number">{String(index + 1).padStart(2, '0')}</span>
+                                    <span className="slot-title">{label}</span>
+                                    <span className={product ? 'slot-state is-selected' : 'slot-state'}>
+                                        {product ? 'Selected' : 'Choose part'}
+                                    </span>
+                                </div>
                                 <div className="slot-control">
                                     <div className="slot-image-wrap">
-                                        {product ? <ProductImage p={product} className="slot-image" /> : <div className="slot-image">No product in stock</div>}
+                                        {product ? <ProductImage p={product} className="slot-image" /> : <div className="slot-image" role="status">{emptyState}</div>}
                                     </div>
-                                    <select value={selected[key] || ''} onChange={(event) => handleChange(key, event.target.value)}>
-                                        <option value="">Select {label}</option>
-                                        {available.map((item) => <option key={item.id} value={item.id}>{item.name} — {formatPrice(item.price)}</option>)}
-                                    </select>
+                                    <div className="slot-select">
+                                        <label className="sr-only" htmlFor={`builder-${key}`}>Select {label}</label>
+                                        <select id={`builder-${key}`} value={selected[key] || ''} disabled={Boolean(apiError) || available.length === 0} onChange={(event) => handleChange(key, event.target.value)}>
+                                            <option value="">{available.length ? `Select ${label}` : emptyState}</option>
+                                            {available.map((item) => <option key={item.id} value={item.id}>{item.name} — {formatPrice(item.price)}</option>)}
+                                        </select>
+                                        {product && (
+                                            <button className="link slot-remove" type="button" onClick={() => handleChange(key, '')}>
+                                                Remove selection
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
-                            </label>
+                            </div>
                         )
                     })}
                 </div>
@@ -199,15 +230,21 @@ export default function PCBuilder() {
                     <ul className="checks">
                         {warnings.map((warning) => <li key={warning} className="warn">⚠ {warning}</li>)}
                         {suggestions.map((suggestion) => <li key={suggestion} className="ok">✓ {suggestion}</li>)}
-                        {!warnings.length && !suggestions.length && <li className="ok">Check your selected components for compatibility.</li>}
+                        {!warnings.length && !suggestions.length && <li>Run the compatibility check to verify this configuration.</li>}
                     </ul>
 
                     {message && <p className="builder-message" role="status">{message}</p>}
+                    {message === 'Please log in before saving a build.' && (
+                        <Link className="btn ghost sm" to="/login" state={{ from: '/builder' }}>Sign in to save this build</Link>
+                    )}
+                    {message === 'Please log in to add products to your cart' && (
+                        <Link className="btn ghost sm" to="/login" state={{ from: '/builder' }}>Sign in to add this build to your bag</Link>
+                    )}
                     <label className="build-name-field">Build name<input value={buildName} maxLength={255} onChange={(event) => setBuildName(event.target.value)} /></label>
                     <div className="total"><span>Estimated total</span><b>{formatPrice(total)}</b></div>
-                    <button className="btn" onClick={checkCompatibility} disabled={checking || !selectedProducts.length}>{checking ? 'Checking...' : 'Check Compatibility'}</button>
-                    <button className="btn" onClick={addBuildToBag} disabled={adding || !selectedProducts.length}>{adding ? 'Adding...' : 'Add build to bag'}</button>
-                    <button className="btn ghost" onClick={saveBuild} disabled={saving || !selectedProducts.length}>{saving ? 'Saving...' : 'Save PC Build'}</button>
+                    <button className="btn" onClick={checkCompatibility} disabled={checking || !selectedProducts.length || Boolean(apiError)}>{checking ? 'Checking...' : 'Check Compatibility'}</button>
+                    <button className="btn" onClick={addBuildToBag} disabled={adding || !selectedProducts.length || Boolean(apiError)}>{adding ? 'Adding...' : 'Add build to bag'}</button>
+                    <button className="btn ghost" onClick={saveBuild} disabled={saving || !selectedProducts.length || !buildName.trim() || Boolean(apiError)}>{saving ? 'Saving...' : 'Save PC Build'}</button>
                 </aside>
             </div>
         </section>

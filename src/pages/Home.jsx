@@ -109,7 +109,7 @@ import { Link } from 'react-router-dom'
 import ProductImage, { Rig } from '../components/ProductImage.jsx'
 import CategoryCard from '../components/CategoryCard.jsx'
 import ProductCard from '../components/Productcard.jsx'
-import { categories as staticCategories, products as staticProducts } from '../data/products.js'
+import { categories as staticCategories } from '../data/products.js'
 import { useCatalog } from '../data/useCatalog.js'
 
 const words = [
@@ -122,16 +122,13 @@ const words = [
 export default function Home() {
     const {
         products: catalogProducts = [],
-        categories: catalogCategories = []
+        categories: catalogCategories = [],
+        error: catalogError,
+        retry: retryCatalog
     } = useCatalog()
 
-    // Backend products first, static products as fallback
-    const products =
-        catalogProducts.length > 0
-            ? catalogProducts
-            : staticProducts
+    const products = catalogProducts
 
-    // Backend categories first, static categories as fallback
     const categories =
         catalogCategories.length > 0
             ? catalogCategories
@@ -171,6 +168,14 @@ export default function Home() {
 
     return (
         <>
+            {catalogError && (
+                <div className="sec homepage-catalog-notice">
+                    <div className="catalog-error" role="status">
+                        <p><strong>Live catalog unavailable</strong> Products and current prices could not be loaded from the store service.</p>
+                        <button className="btn ghost sm" type="button" onClick={retryCatalog}>Retry connection</button>
+                    </div>
+                </div>
+            )}
             {/* ================= HERO SECTION ================= */}
             <section className="hero">
                 <div>
@@ -202,8 +207,8 @@ export default function Home() {
                     <div className="feats">
                         <div>
                             <b>01</b>
-                            <span>Curated hardware</span>
-                            <small>Tested in the real world</small>
+                            <span>PC components</span>
+                            <small>Explore the full hardware range</small>
                         </div>
 
                         <div>
@@ -394,17 +399,12 @@ export default function Home() {
 
                     <div className="cscard">
                         <span className="kicker">
-                            COMPATIBILITY
+                        BUILD WITH CONFIDENCE
                         </span>
 
-                        <div className="score">
-                            98.4%
-                        </div>
-
-                        <p className="mute">
-                            Everything in this build plays nicely
-                            together.
-                        </p>
+                    <p className="mute">
+                        Check your selected components with the PC Builder before you buy.
+                    </p>
                     </div>
                 </div>
             </section>

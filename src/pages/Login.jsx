@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { API_BASE } from '../data/api.js'
 
@@ -6,6 +6,12 @@ const API_URL = API_BASE
 
 export default function Login() {
     const navigate = useNavigate()
+    const location = useLocation()
+    const returnTo = typeof location.state?.from === 'string'
+        && location.state.from.startsWith('/')
+        && !location.state.from.startsWith('//')
+        ? location.state.from
+        : '/profile'
 
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
@@ -41,7 +47,9 @@ export default function Login() {
 
             if (!response.ok || !result.success) {
                 throw new Error(
-                    result.message || 'Login failed'
+                    response.status >= 500
+                        ? 'Account service is temporarily unavailable. Please try again later.'
+                        : result.message || 'Login failed'
                 )
             }
 
@@ -54,20 +62,20 @@ export default function Login() {
                 'cyberflixUser',
                 JSON.stringify(result.data)
             )
+            window.dispatchEvent(new Event('cyberflix:auth-changed'))
 
             setSuccess('Login successful!')
 
             setTimeout(() => {
-                navigate('/profile')
+                navigate(returnTo)
             }, 500)
 
         } catch (err) {
             console.error('Login Error:', err)
 
-            setError(
-                err.message ||
-                'Unable to login. Please try again.'
-            )
+            setError(err instanceof TypeError
+                ? 'Cannot reach the account service. Please try again later.'
+                : err.message || 'Unable to sign in. Please try again.')
         } finally {
             setLoading(false)
         }
@@ -138,17 +146,9 @@ export default function Login() {
 
                         </label>
 
-                        <button
-                            className="link"
-                            type="button"
-                            onClick={() =>
-                                alert(
-                                    'Password reset feature coming soon.'
-                                )
-                            }
-                        >
-                            Forgot password?
-                        </button>
+                        <Link className="link" to="/contact">
+                            Need help signing in?
+                        </Link>
 
                     </div>
 

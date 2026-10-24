@@ -256,6 +256,7 @@ export default function Cart() {
 
     const [orderError, setOrderError] =
         useState('')
+    const [pendingItems, setPendingItems] = useState(() => new Set())
     const [delivery, setDelivery] = useState({
         name: '',
         phone: '',
@@ -264,10 +265,35 @@ export default function Cart() {
         region: '',
         postalCode: '',
     })
+    const signedIn = Boolean(getUserId())
 
     useEffect(() => {
         loadCart()
     }, [loadCart])
+
+    const handleCartAction = async (action) => {
+        try {
+            await action()
+        } catch {
+            // CartContext exposes mutation failures through its visible error message.
+        }
+    }
+
+    const handleItemAction = async (itemId, action) => {
+        if (pendingItems.has(itemId)) return
+        setPendingItems((current) => new Set(current).add(itemId))
+        try {
+            await action()
+        } catch {
+            // CartContext exposes mutation failures through its visible error message.
+        } finally {
+            setPendingItems((current) => {
+                const next = new Set(current)
+                next.delete(itemId)
+                return next
+            })
+        }
+    }
 
     // ======================================
     // PLACE ORDER
@@ -275,6 +301,14 @@ export default function Cart() {
 
     const placeOrder = async (event) => {
         event.preventDefault()
+
+        const userId = getUserId()
+
+        if (!userId) {
+            navigate('/login', { state: { from: '/cart' } })
+            return
+        }
+
         if (cart.length === 0) {
             return
         }
@@ -285,11 +319,17 @@ export default function Cart() {
 
             const result = await apiRequest('/orders/create', {
                 method: 'POST',
-                body: JSON.stringify({ userId: getUserId(), delivery })
+                body: JSON.stringify({ userId, delivery })
             })
 
+            const orderId = Number(result.orderId ?? result.data?.orderId)
+
+            if (!Number.isInteger(orderId) || orderId <= 0) {
+                throw new Error('The order could not be created. Please try again.')
+            }
+
             reset()
-            navigate(`/orders/${result.orderId || result.data?.orderId}`)
+            navigate(`/orders/${orderId}`)
 
         } catch (err) {
             console.error(
@@ -345,7 +385,7 @@ export default function Cart() {
                 {cart.length > 0 && (
                     <button
                         className="btn ghost"
-                        onClick={clear}
+                        onClick={() => handleCartAction(clear)}
                     >
                         Clear cart
                     </button>
@@ -355,7 +395,7 @@ export default function Cart() {
 
             {/* ================= ERRORS ================= */}
 
-            {error && (
+            {error && cart.length > 0 && (
                 <p className="form-error" role="alert">
                     {error}
                 </p>
@@ -367,27 +407,31 @@ export default function Cart() {
                 </p>
             )}
 
-            {/* ================= EMPTY CART ================= */}
+            {cart.length === 0 && error ? (
+                <div className="panel cart-empty" role="alert">
+                    <p className="kicker">BAG UNAVAILABLE</p>
+                    <h2>We couldn't load your bag.</h2>
+                    <p className="mute">{error}</p>
+                    <button className="btn" type="button" onClick={loadCart}>
+                        Try again
+                    </button>
+                </div>
+            ) : (
+            /* ================= EMPTY CART ================= */
+            cart.length === 0 ? (
 
-            {cart.length === 0 ? (
-
-                <div className="panel">
-
-                    <h2>
-                        Your bag is empty.
-                    </h2>
-
+                <div className="panel cart-empty">
+                    <p className="kicker">{signedIn ? 'YOUR BAG' : 'ACCOUNT CART'}</p>
+                    <h2>{signedIn ? 'Your bag is empty.' : 'Sign in to view your cart.'}</h2>
                     <p className="mute">
-                        Add some PC components to continue.
+                        {signedIn
+                            ? 'Add components from the catalog to start your build.'
+                            : 'Your cart is linked to your Cyberflix account. Sign in to see its contents, or explore the component catalog.'}
                     </p>
-
-                    <Link
-                        className="btn"
-                        to="/products"
-                    >
-                        Shop components
-                    </Link>
-
+                    <div className="row">
+                        {!signedIn && <Link className="btn" to="/login" state={{ from: '/cart' }}>Sign in</Link>}
+                        <Link className={signedIn ? 'btn' : 'btn ghost'} to="/products">Shop components</Link>
+                    </div>
                 </div>
 
             ) : (
@@ -400,11 +444,18 @@ export default function Cart() {
 
                     <div className="cart-list">
 
-                        {cart.map((item) => (
+                        {cart.map((item) => {
+                            const itemId = item.cart_id ?? item.id
+                            const quantity = Number(item.quantity)
+                            const stock = Number(item.stock)
+                            const updating = pendingItems.has(itemId)
+                            const stockLimit = Number.isFinite(stock) && stock >= 0
+
+                            return (
 
                             <article
                                 className="cart-item panel"
-                                key={item.cart_id ?? item.id}
+                                key={itemId}
                             >
 
                                 {/* IMAGE */}
@@ -443,47 +494,33 @@ export default function Cart() {
 
                                         <button
                                             className="qty-btn"
-                                            onClick={() => {
-                                                const newQuantity =
-                                                    Number(item.quantity) - 1
-
-                                                if (
-                                                    newQuantity >= 1
-                                                ) {
-                                                    updateQuantity(
-                                                        item.cart_id ?? item.id,
-                                                        newQuantity
-                                                    )
-                                                }
-                                            }}
-                                            disabled={
-                                                Number(item.quantity) <= 1
-                                            }
+                                            type="button"
+                                            aria-label={`Decrease quantity of ${item.name}`}
+                                            onClick={() => handleItemAction(itemId, () => updateQuantity(itemId, quantity - 1))}
+                                            disabled={updating || quantity <= 1}
                                         >
                                             −
                                         </button>
 
-                                        <span>
-                                            {item.quantity}
+                                        <span aria-live="polite" aria-atomic="true">
+                                            {updating ? 'Updating…' : quantity}
                                         </span>
 
                                         <button
                                             className="qty-btn"
-                                            onClick={() =>
-                                                updateQuantity(
-                                                    item.cart_id ?? item.id,
-                                                    Number(item.quantity) + 1
-                                                )
-                                            }
+                                            type="button"
+                                            aria-label={`Increase quantity of ${item.name}`}
+                                            onClick={() => handleItemAction(itemId, () => updateQuantity(itemId, quantity + 1))}
+                                            disabled={updating || (stockLimit && quantity >= stock)}
                                         >
                                             +
                                         </button>
 
                                         <button
                                             className="link"
-                                            onClick={() =>
-                                                remove(item.cart_id ?? item.id)
-                                            }
+                                            type="button"
+                                            onClick={() => handleItemAction(itemId, () => remove(itemId))}
+                                            disabled={updating}
                                         >
                                             Remove
                                         </button>
@@ -494,16 +531,16 @@ export default function Cart() {
 
                                 {/* ITEM TOTAL */}
 
-                                <strong>
+                                <strong className="cart-item-subtotal" aria-label={`Subtotal ${formatPrice(Number(item.price) * quantity)}`}>
                                     {formatPrice(
-                                        Number(item.price) *
-                                        Number(item.quantity)
+                                        Number(item.price) * quantity
                                     )}
                                 </strong>
 
                             </article>
 
-                        ))}
+                            )
+                        })}
 
                     </div>
 
@@ -512,7 +549,7 @@ export default function Cart() {
                     <form className="panel cart-summary checkout-form" onSubmit={placeOrder}>
 
                         <p className="kicker">
-                            SECURE CHECKOUT
+                            DELIVERY DETAILS
                         </p>
 
                         <h2>Delivery details</h2>
@@ -619,7 +656,7 @@ export default function Cart() {
 
                 </div>
 
-            )}
+            ))}
 
         </section>
     )

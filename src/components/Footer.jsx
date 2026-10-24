@@ -9,8 +9,8 @@ export default function Footer() {
             <div className="fgrid">
                 <div>
                     <Link className="logo" to="/">
-                        <img src="/favicon.svg" alt="" />
-                        <span>CYBERFLIX</span>
+                        <img src="/cyberflix-logo.svg" alt="Cyberflix Systems LLP" />
+                        <span>CYBERFLIX<small>SYSTEMS LLP</small></span>
                     </Link>
                     <p className="mute">Performance hardware, thoughtfully assembled.</p>
                     <p className="mute">Cyberflix Systems LLP<br />Support: 1800-CYBERFLIX</p>
@@ -30,7 +30,7 @@ export default function Footer() {
                     {company.map(([label, slug]) => <Link key={slug} to={`/info/${slug}`}>{label}</Link>)}
                     <Link to="/contact">Contact support</Link>
                     <Link to="/login">Login / profile</Link>
-                    <div className="status"><i className="dot" />ALL SYSTEMS OPERATIONAL</div>
+                    <div className="status"><i className="dot" />PC COMPONENTS · BUILD SUPPORT</div>
                 </div>
             </div>
             <p className="copy">© 2026 CYBERFLIX SYSTEMS LLP</p>

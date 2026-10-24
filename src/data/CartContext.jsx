@@ -28,11 +28,19 @@ export function CartProvider({ children }) {
             }
 
             const result = await apiRequest(`/cart/${userId}`)
+            const items = Array.isArray(result)
+                ? result
+                : result.data
 
-            setCart(result.data || [])
+            if (!Array.isArray(items)) {
+                throw new Error('The backend returned an invalid cart response')
+            }
+
+            setCart(items)
 
         } catch (err) {
             console.error('Cart load error:', err)
+            setCart([])
 
             setError(
                 err.message || 'Unable to load cart'
@@ -46,6 +54,23 @@ export function CartProvider({ children }) {
     useEffect(() => {
         const request = window.setTimeout(() => { void loadCart() }, 0)
         return () => window.clearTimeout(request)
+    }, [loadCart])
+
+    useEffect(() => {
+        const handleAuthChange = () => { void loadCart() }
+        const handleStorageChange = (event) => {
+            if (event.key === 'cyberflixUser') {
+                handleAuthChange()
+            }
+        }
+
+        window.addEventListener('cyberflix:auth-changed', handleAuthChange)
+        window.addEventListener('storage', handleStorageChange)
+
+        return () => {
+            window.removeEventListener('cyberflix:auth-changed', handleAuthChange)
+            window.removeEventListener('storage', handleStorageChange)
+        }
     }, [loadCart])
 
     // =========================
@@ -85,16 +110,27 @@ export function CartProvider({ children }) {
         try {
             setError('')
 
-            if (Number(quantity) < 1) {
-                return remove(cartId)
+            const userId = getUserId()
+            const nextQuantity = Number(quantity)
+            if (!userId) {
+                throw new Error('Please log in to update your cart')
+            }
+            if (!Number.isSafeInteger(nextQuantity) || nextQuantity < 1) {
+                throw new Error('Quantity must be a positive whole number')
             }
 
             const result = await apiRequest(`/cart/${cartId}`, {
                 method: 'PUT',
-                body: JSON.stringify({ quantity: Number(quantity) })
+                body: JSON.stringify({ userId: Number(userId), quantity: nextQuantity })
             })
 
-            await loadCart()
+            if (result.data) {
+                setCart((previous) => previous.map((item) =>
+                    Number(item.cart_id) === Number(cartId) ? result.data : item
+                ))
+            } else {
+                await loadCart()
+            }
             return result
         } catch (err) {
             console.error('Update cart error:', err)
@@ -106,12 +142,18 @@ export function CartProvider({ children }) {
     const remove = async (cartId) => {
         try {
             setError('')
+            const userId = getUserId()
+            if (!userId) {
+                throw new Error('Please log in to remove items from your cart')
+            }
 
-            const result = await apiRequest(`/cart/${cartId}`, {
+            const result = await apiRequest(`/cart/${cartId}?userId=${encodeURIComponent(userId)}`, {
                 method: 'DELETE'
             })
 
-            await loadCart()
+            setCart((previous) => previous.filter(
+                (item) => Number(item.cart_id) !== Number(cartId)
+            ))
             return result
         } catch (err) {
             console.error('Remove cart error:', err)

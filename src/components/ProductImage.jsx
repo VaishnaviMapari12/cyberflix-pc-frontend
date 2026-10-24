@@ -194,7 +194,7 @@ const ART = {
         ),
 }
 
-export default function ProductImage({ p, cat, className = '' }) {
+export default function ProductImage({ p, cat, className = '', loading = 'lazy' }) {
     const c = cat || p?.cat || 'accessories'
     const a = ACC[hash(p?.id || c) % ACC.length]
     const imageSource = p?.img?.trim()
@@ -213,7 +213,7 @@ export default function ProductImage({ p, cat, className = '' }) {
                 <img
                     src={displayedImageUrl}
                     alt={p?.name || 'PC component'}
-                    loading="lazy"
+                    loading={loading}
                     onError={() => setFailedImageUrl(displayedImageUrl)}
                 />
             </div>

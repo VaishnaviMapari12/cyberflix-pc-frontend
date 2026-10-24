@@ -1,192 +1,8 @@
-// import { useCallback, useEffect, useState } from 'react'
-
-// const API_URL = 'http://localhost:5000/api'
-
-// const categoryMap = {
-//     'CPU': 'cpu',
-//     'GPU / Graphics Card': 'gpu',
-//     'Motherboard': 'motherboard',
-//     'RAM': 'ram',
-//     'SSD / HDD': 'storage',
-//     'PSU': 'psu',
-//     'PC Case': 'case',
-//     'CPU Cooler': 'cooler',
-//     'Fans': 'fans',
-//     'Monitors': 'monitors',
-//     'Other PC Accessories': 'accessories',
-//     'Accessories': 'accessories'
-// }
-
-// export function useCatalog() {
-
-//     const [products, setProducts] =
-//         useState([])
-
-//     const [loading, setLoading] =
-//         useState(true)
-
-//     const [error, setError] =
-//         useState('')
-
-//     const loadProducts = useCallback(
-//         async () => {
-
-//             try {
-
-//                 setLoading(true)
-//                 setError('')
-
-//                 const response =
-//                     await fetch(
-//                         `${API_URL}/products`
-//                     )
-
-//                 if (!response.ok) {
-//                     throw new Error(
-//                         `Backend error: ${response.status}`
-//                     )
-//                 }
-
-//                 const result =
-//                     await response.json()
-
-//                 if (!result.success) {
-//                     throw new Error(
-//                         result.message ||
-//                         'Failed to load products'
-//                     )
-//                 }
-
-//                 const apiProducts =
-//                     result.data || []
-
-//                 const formattedProducts =
-//                     apiProducts.map(
-//                         (item) => ({
-
-//                             id: item.id,
-
-//                             name: item.name,
-
-//                             cat:
-//                                 categoryMap[
-//                                 item.category_name
-//                                 ] ||
-//                                 categoryMap[
-//                                 item.category
-//                                 ] ||
-//                                 'accessories',
-
-//                             price:
-//                                 Number(
-//                                     item.price || 0
-//                                 ),
-
-//                             rating: 4.5,
-
-//                             reviews: 0,
-
-//                             brand:
-//                                 item.brand || '',
-
-//                             description:
-//                                 item.description ||
-//                                 '',
-
-//                             image:
-//                                 item.image ||
-//                                 '',
-
-//                             img:
-//                                 item.image ||
-//                                 '',
-
-//                             spec:
-//                                 item.description ||
-//                                 item.brand ||
-//                                 'PC Component',
-
-//                             stock:
-//                                 Number(
-//                                     item.stock || 0
-//                                 ),
-
-//                             c: {
-
-//                                 socket:
-//                                     item.socket,
-
-//                                 ddr:
-//                                     item.ram_type,
-
-//                                 watts:
-//                                     item.wattage,
-
-//                                 requiredWattage:
-//                                     item.required_wattage,
-
-//                                 supportedSocket:
-//                                     item.supported_socket,
-
-//                                 form:
-//                                     item.form_factor,
-
-//                                 supportedFormFactor:
-//                                     item.supported_form_factor
-
-//                             }
-
-//                         })
-//                     )
-
-//                 setProducts(
-//                     formattedProducts
-//                 )
-
-//             } catch (err) {
-
-//                 console.error(
-//                     'Catalog API Error:',
-//                     err
-//                 )
-
-//                 setError(
-//                     err.message ||
-//                     'Unable to connect to backend.'
-//                 )
-
-//                 setProducts([])
-
-//             } finally {
-
-//                 setLoading(false)
-
-//             }
-
-//         },
-//         []
-//     )
-
-//     useEffect(() => {
-//         loadProducts()
-//     }, [loadProducts])
-
-//     return {
-//         products,
-//         loading,
-//         error,
-//         retry: loadProducts
-//     }
-// }
-
-
 
 
 import { useCallback, useEffect, useState } from 'react'
-import { API_BASE } from './api.js'
-import { categories as staticCategories, products as staticProducts } from './products.js'
-
-const API_URL = API_BASE
+import { apiRequest } from './api.js'
+import { categories as staticCategories } from './products.js'
 
 const categoryMap = {
     'CPU': 'cpu',
@@ -216,17 +32,7 @@ export function useCatalog() {
 
     const loadProducts = useCallback(async () => {
         try {
-            const response = await fetch(
-                `${API_URL}/products`
-            )
-
-            if (!response.ok) {
-                throw new Error(
-                    `Products API error: ${response.status}`
-                )
-            }
-
-            const result = await response.json()
+            const result = await apiRequest('/products')
 
             if (!result.success) {
                 throw new Error(
@@ -262,9 +68,9 @@ export function useCatalog() {
                         item.price || 0
                     ),
 
-                    rating: 4.5,
+                    rating: item.rating == null ? null : Number(item.rating),
 
-                    reviews: 0,
+                    reviews: item.reviews == null ? null : Number(item.reviews),
 
                     brand:
                         item.brand || '',
@@ -319,10 +125,7 @@ export function useCatalog() {
             setProducts(formattedProducts)
 
         } catch (err) {
-            console.error(
-                'Products API Error:',
-                err
-            )
+            console.warn('Products unavailable:', err.message)
 
             throw err
         }
@@ -334,17 +137,7 @@ export function useCatalog() {
 
     const loadCategories = useCallback(async () => {
         try {
-            const response = await fetch(
-                `${API_URL}/categories`
-            )
-
-            if (!response.ok) {
-                throw new Error(
-                    `Categories API error: ${response.status}`
-                )
-            }
-
-            const result = await response.json()
+            const result = await apiRequest('/categories')
 
             if (!result.success) {
                 throw new Error(
@@ -379,10 +172,7 @@ export function useCatalog() {
             )
 
         } catch (err) {
-            console.error(
-                'Categories API Error:',
-                err
-            )
+            console.warn('Categories unavailable:', err.message)
 
             throw err
         }
@@ -394,26 +184,27 @@ export function useCatalog() {
 
     const loadCatalog = useCallback(
         async () => {
-            try {
-                setLoading(true)
-                setError('')
+            setLoading(true)
+            setError('')
 
-                await Promise.all([
-                    loadProducts(),
-                    loadCategories()
-                ])
+            const [productsResult, categoriesResult] = await Promise.allSettled([
+                loadProducts(),
+                loadCategories()
+            ])
+            const errors = []
 
-            } catch (err) {
-                setProducts(staticProducts)
-                setCategories(staticCategories)
-                setError(
-                    err.message ||
-                    'Unable to connect to backend.'
-                )
-
-            } finally {
-                setLoading(false)
+            if (productsResult.status === 'rejected') {
+                setProducts([])
+                errors.push(productsResult.reason.message || 'Unable to load products.')
             }
+
+            if (categoriesResult.status === 'rejected') {
+                setCategories([])
+                errors.push(categoriesResult.reason.message || 'Unable to load categories.')
+            }
+
+            setError(errors.join(' '))
+            setLoading(false)
         },
         [
             loadProducts,
